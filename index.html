@@ -80,7 +80,7 @@
     </div> <!-- /survey-page container -->
 
     <div id="scans-page" class="page container">
-      <div id="header"><h1>Art Center Survey</h1></div>
+      <div id="scan-header"></div>
       <div id="scans" class="span10">
         <h3>Scanned Paper Forms <small id="scan-count"></small></h3>
         <p>
@@ -125,18 +125,18 @@
       <h1><%= title %> <small><%= count %> responses so far</small></h1>
     </script>
     <script type="text/template" id="resp-head">
-      <tr><th>Type</th><th>Parcel ID</th><% _.each(values, function(value) { %> <th><%= value %></th> <%}); %></tr>
+      <tr><th>Type</th><th>Parcel ID</th><th>Entered On</th><% _.each(values, function(value) { %> <th><%= value %></th> <%}); %></tr>
     </script>
     <script type="text/template" id="resp-body-item">
-      <tr><td><%= type %></td><td><%= parcel_id %></td><% _.each(values, function(value) { %> <td><%= value %></td> <%}); %></tr>
+      <tr><td><%= type %></td><td><%= parcel_id %></td><td><%= created %></td><% _.each(values, function(value) { %> <td><%= value %></td> <%}); %></tr>
     </script>
 
     <script type="text/template" id="scan-item">
       <tr><td><%= id %></td><td><%= filename %></td><td><%= status %></td></tr>
     </script>
 
-    <script type="text/template" id="scan-count-template">
-      <%= count %> uploaded so far
+    <script type="text/template" id="scan-header-template">
+      <h1><%= title %> <small><%= count %> uploaded so far</small></h1>
     </script>
 
     <!-- Le javascript

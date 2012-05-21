@@ -1,6 +1,7 @@
 var BASEURL = 'http://surveydet.herokuapp.com';
 //var BASEURL = 'http://localhost:5000';
-var surveyid = 'b53eed70-9337-11e1-9bf5-39dee61cc65b';
+//var surveyid = 'b53eed70-9337-11e1-9bf5-39dee61cc65b';
+var surveyid = '23206450-a0ac-11e1-ae6a-a17fba15c6fd';
 
 var Scan = Backbone.Model.extend({});
 var Scans = Backbone.Collection.extend({
@@ -33,10 +34,12 @@ var ScanListView = Backbone.View.extend({
 
 var ScansPageView = Backbone.View.extend({
   el: '#scans-page',
-  initialize: function initialize() {
+  initialize: function initialize(survey) {
     // Set up models.
     this.scans = new Scans();
     this.scans.on('all', this.render, this);
+    this.survey = survey;
+    this.survey.on('all', this.render, this);
 
     // Get model data.
     this.refresh();
@@ -46,9 +49,10 @@ var ScansPageView = Backbone.View.extend({
   },
   refresh: function refresh() {
     this.scans.fetch();
+    this.survey.fetch();
   },
   render: function render() {
-    this.$('#scan-count').html(_.template($('#scan-count-template').html(), {count: this.scans.length}));
+    this.$('#scan-header').html(_.template($('#scan-header-template').html(), {title: this.survey.get('name'), count: this.scans.length}));
     return this;
   },
   events: {
@@ -94,6 +98,9 @@ var FormInfo = Backbone.Model.extend({
       return [];
     }));
 
+    // XXX
+    attributes.questions = ['collector', 'site', 'number-of-buildings', 'use', 'service-use', 'design', 'vacancy-1', 'condition-1'];
+    // XXX
     return attributes;
   }
 });
@@ -139,8 +146,14 @@ var ResponseListView = Backbone.View.extend({
       var data = {
         type: response.get('source').type,
         parcel_id: response.get('parcel_id'),
+        created: response.get('created'),
         values: []
       };
+      if (data.created) {
+        data.created = (new Date(data.created)).toDateString();
+      } else {
+        data.created = 'unknown';
+      }
       for (var i = 0; i < questions.length; i++) {
         var value = response.get('responses')[questions[i]];
         if (value === undefined) {
@@ -156,10 +169,10 @@ var ResponseListView = Backbone.View.extend({
 
 var ResponsesPageView = Backbone.View.extend({
   el: '#responses-page',
-  initialize: function() {
+  initialize: function(survey) {
     // Set up models.
     this.responses = new Responses();
-    this.survey = new Survey();
+    this.survey = survey;
     this.formInfo = new FormInfo();
 
     // Get model data.
@@ -303,14 +316,16 @@ function hidePages() {
   $('.page').hide();
 }
 
+var survey = new Survey();
 var surveyPageView = new SurveyPageView();
-var responsesPageView = new ResponsesPageView();
+var responsesPageView = new ResponsesPageView(survey);
 var singleResponsePageView = new SingleResponsePageView();
-var scansPageView = new ScansPageView();
+var scansPageView = new ScansPageView(survey);
 var uploadPageView = new UploadPageView();
+survey.fetch();
 
 var router = new Backbone.Router();
 var navTabsView = new NavTabsView(router);
 
 Backbone.history.start({pushState: false});
-router.navigate('surveys/b53eed70-9337-11e1-9bf5-39dee61cc65b/responses', {trigger: true, replace: true});
+router.navigate('surveys/' + surveyid + '/responses', {trigger: true, replace: true});
