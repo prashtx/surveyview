@@ -1,5 +1,5 @@
-//var BASEURL = 'http://surveydet.herokuapp.com';
-var BASEURL = 'http://localhost:5000';
+var BASEURL = 'http://surveydet.herokuapp.com';
+//var BASEURL = 'http://localhost:5000';
 //var surveyid = 'b53eed70-9337-11e1-9bf5-39dee61cc65b';
 var surveyid = '23206450-a0ac-11e1-ae6a-a17fba15c6fd';
 
@@ -129,7 +129,19 @@ var Responses = Backbone.Collection.extend({
   model: Response,
   url: BASEURL + '/surveys/' + surveyid + '/responses',
   parse: function(resp) {
-    return resp.responses;
+    // Sort newest first
+    return resp.responses.sort(function(a, b) {
+      if (a.created === undefined) {
+        return 1;
+      }
+      if (a.created > b.created) {
+        return -1;
+      }
+      if (a.created < b.created) {
+        return 1;
+      }
+      return 0;
+    });
   }
 });
 
@@ -166,25 +178,6 @@ var FormInfo = Backbone.Model.extend({
 });
 
 // Views
-var ResponsesHeader = Backbone.View.extend({
-  el: '#responses-header',
-  initialize: function(survey, responses) {
-    this.responses = responses;
-    this.responses.on('all', this.render, this);
-    this.survey = survey;
-    this.survey.on('all', this.render, this);
-    this.render();
-  },
-  render: function() {
-    var data = {
-      title: this.survey.get('name'),
-      count: this.responses.length
-    };
-    $(this.el).html(_.template($('#header-template').html(), data));
-    return this;
-  }
-});
-
 var ResponseListView = Backbone.View.extend({
   el: '#responses',
   initialize: function(formInfo, responses) {
@@ -227,20 +220,33 @@ var ResponsesPageView = Backbone.View.extend({
   initialize: function(survey) {
     // Set up models.
     this.responses = new Responses();
+    this.responses.on('all', this.render, this);
     this.survey = survey;
+    this.survey.on('all', this.render, this);
     this.formInfo = new FormInfo();
 
     // Get model data.
     this.refresh();
 
     // Set up views.
-    this.header = new ResponsesHeader(this.survey, this.responses);
     this.responseListView = new ResponseListView(this.formInfo, this.responses);
   },
   refresh: function() {
     this.survey.fetch();
     this.formInfo.fetch();
     this.responses.fetch();
+  },
+  render: function() {
+    htmlTemplate(this.$('#responses-header'),
+                 this.$('#header-template'),
+                 {
+                   title: this.survey.get('name')
+                 });
+    htmlTemplate(this.$('#response-count'),
+                 this.$('#count-template'),
+                 { count: this.responses.length });
+
+    return this;
   },
   getCSV: function() {
     window.location = BASEURL + '/surveys/' + surveyid + '/csv';
@@ -280,89 +286,57 @@ var SurveyPageView = Backbone.View.extend({
   el: '#survey-page'
 });
 
-var SingleResponsePageView = Backbone.View.extend({
-  el: '#response-page'
-});
-
-var navTabItem = {
-  id: '',
-  fragment: '',
-  title: '',
-  active: false,
-  router: null
-};
-function makeNavTabItem(id, fragment, title, router, active) {
-  var nti = Object.create(navTabItem);
-  nti.id = id;
-  nti.fragment = fragment;
-  nti.router = router;
-  nti.title = title;
-  if (active !== undefined) {
-    nti.active = active;
+function makeNavItem(id, fragment, title) {
+  var item = {
+    id: id,
+    fragment: fragment,
+    title: title
   }
-  return nti;
+  return item;
 }
+
+function NavItems(router) {
+  this.items = [
+    makeNavItem('responses', 'surveys/' + surveyid + '/responses', 'Responses'),
+    makeNavItem('scans', 'surveys/' + surveyid + '/scans', 'Scans'),
+    makeNavItem('upload', 'surveys/' + surveyid + '/upload', 'Upload')
+  ];
+
+  this.current = this.items[0];
+
+  this.navigate = function(item) {
+    this.current = item;
+    router.navigate(item.fragment, {trigger: true});
+  }
+}
+
 var NavTabsView = Backbone.View.extend({
   el: '#nav-tabs',
-  navitems: [],
-  initialize: function(router) {
-    router.route('surveys/:sid/responses/:rid', 'response', function(sid, rid) {
-      hidePages();
-      // Set up model for the response page
-      // XXX
-      singleResponsePageView.$el.show();
-    });
-    router.route('surveys/:sid/scans', 'scans', function(sid) {
-      hidePages();
-      scansPageView.$el.show();
-    });
-    router.route('surveys/:sid/upload', 'upload', function(sid) {
-      hidePages();
-      uploadPageView.$el.show();
-    });
-    router.route('surveys/:sid/responses', 'responses', function(path) {
-      hidePages();
-      responsesPageView.$el.show();
-    });
-    this.navitems.push(makeNavTabItem('responses',
-                                      'surveys/' + surveyid + '/responses',
-                                      'Responses',
-                                      router,
-                                      true));
-    this.navitems.push(makeNavTabItem('scans',
-                                      'surveys/' + surveyid + '/scans',
-                                      'Scanned Forms',
-                                      router));
-    this.navitems.push(makeNavTabItem('upload',
-                                      'surveys/' + surveyid + '/upload',
-                                      'Upload New Scans',
-                                      router));
-
+  initialize: function(navItems, router) {
     router.on('all', this.render, this);
+    this.navItems = navItems;
 
     this.render();
 
     this.events = {};
-    _.each(this.navitems, function(navitem) {
-      this.events['click #' + navitem.id] = function() {
-        _.each(this.navitems, function(navitem) {
-          navitem.active = false;
-        });
-        navitem.active = true;
-        router.navigate(navitem.fragment, {trigger: true, replace: false});
+    _.each(this.navItems.items, function(item) {
+      this.events['click #' + item.id] = function(event) {
+        event.preventDefault();
+        this.navItems.current = item;
+        this.navItems.navigate(item);
       }
     }, this);
     this.delegateEvents(this.events);
   },
   render: function() {
     this.$el.html('');
-    _.each(this.navitems,function(navitem) {
+    _.each(this.navItems.items, function(item) {
       var data = {
-        id: navitem.id,
+        id: item.id,
         css: '',
-        title: navitem.title
+        title: item.title
       };
-      if (navitem.active) {
+      if (item === this.navItems.current) {
         data.css = 'active';
       }
       this.$el.append(_.template($('#nav-tab-item').html(), data));
@@ -371,20 +345,30 @@ var NavTabsView = Backbone.View.extend({
   }
 });
 
-function hidePages() {
+function switchPage(pageView) {
   $('.page').hide();
+  pageView.$el.show();
 }
 
 var survey = new Survey();
 var surveyPageView = new SurveyPageView();
 var responsesPageView = new ResponsesPageView(survey);
-var singleResponsePageView = new SingleResponsePageView();
 var scansPageView = new ScansPageView(survey);
 var uploadPageView = new UploadPageView();
 survey.fetch();
 
 var router = new Backbone.Router();
-var navTabsView = new NavTabsView(router);
+router.route('surveys/:sid/scans', 'scans', function(sid) {
+  switchPage(scansPageView);
+});
+router.route('surveys/:sid/upload', 'upload', function(sid) {
+  switchPage(uploadPageView);
+});
+router.route('surveys/:sid/responses', 'responses', function(path) {
+  switchPage(responsesPageView);
+});
+var navItems = new NavItems(router);
+var navTabsView = new NavTabsView(navItems, router);
 
 Backbone.history.start({pushState: false});
 router.navigate('surveys/' + surveyid + '/responses', {trigger: true, replace: false});
