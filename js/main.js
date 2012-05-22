@@ -1,7 +1,25 @@
-var BASEURL = 'http://surveydet.herokuapp.com';
-//var BASEURL = 'http://localhost:5000';
+//var BASEURL = 'http://surveydet.herokuapp.com';
+var BASEURL = 'http://localhost:5000';
 //var surveyid = 'b53eed70-9337-11e1-9bf5-39dee61cc65b';
 var surveyid = '23206450-a0ac-11e1-ae6a-a17fba15c6fd';
+
+function htmlTemplate(el, plate, data) {
+  el.html(_.template(plate.html(), data));
+}
+
+function friendlyDate(str) {
+  if (!str) {
+    return 'unknown';
+  }
+  var d = new Date(str);
+  var now = new Date();
+  if (d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()) {
+    return 'Today at ' + d.toLocaleTimeString();
+  }
+  return d.toLocaleDateString();
+}
 
 var Scan = Backbone.Model.extend({});
 var Scans = Backbone.Collection.extend({
@@ -23,6 +41,7 @@ var ScanListView = Backbone.View.extend({
     this.scans.each(function(scan) {
       var data = {
         id: scan.get('id'),
+        date: friendlyDate(scan.get('created')),
         filename: scan.get('filename'),
         status: scan.get('status'),
         url: scan.get('url')
@@ -42,6 +61,15 @@ var ScansPageView = Backbone.View.extend({
     this.survey = survey;
     this.survey.on('all', this.render, this);
 
+    // Set up templating
+    this.scan_header = this.$('#scan-header');
+    this.scan_header_template = $('#scan-header-template');
+    this.scan_count = this.$('#scan-count');
+    this.pending_count = this.$('#pending-count');
+    this.working_count = this.$('#working-count');
+    this.completed_count = this.$('#completed-count');
+    this.count_template = this.$('#count-template');
+
     // Get model data.
     this.refresh();
 
@@ -53,7 +81,38 @@ var ScansPageView = Backbone.View.extend({
     this.survey.fetch();
   },
   render: function render() {
-    this.$('#scan-header').html(_.template($('#scan-header-template').html(), {title: this.survey.get('name'), count: this.scans.length}));
+    htmlTemplate(this.scan_header,
+                 this.scan_header_template,
+                 {
+                   title: this.survey.get('name'),
+                   count: this.scans.length
+                 });
+    htmlTemplate(this.scan_count, this.count_template, {count: this.scans.length});
+    htmlTemplate(this.pending_count, this.count_template, {
+      count: this.scans.reduce(function(memo, scan) {
+        if (scan.get('status') === 'pending') {
+          return memo + 1;
+        }
+        return memo;
+      }, 0)
+    });
+    htmlTemplate(this.working_count, this.count_template, {
+      count: this.scans.reduce(function(memo, scan) {
+        if (scan.get('status') === 'working') {
+          return memo + 1;
+        }
+        return memo;
+      }, 0)
+    });
+    htmlTemplate(this.completed_count, this.count_template, {
+      count: this.scans.reduce(function(memo, scan) {
+        if (scan.get('status') === 'completed') {
+          return memo + 1;
+        }
+        return memo;
+      }, 0)
+    });
+    //this.$('#scan-header').html(_.template($('#scan-header-template').html(), {title: this.survey.get('name'), count: this.scans.length}));
     return this;
   },
   events: {
@@ -147,14 +206,9 @@ var ResponseListView = Backbone.View.extend({
       var data = {
         type: response.get('source').type,
         parcel_id: response.get('parcel_id'),
-        created: response.get('created'),
+        created: friendlyDate(response.get('created')),
         values: []
       };
-      if (data.created) {
-        data.created = (new Date(data.created)).toDateString();
-      } else {
-        data.created = 'unknown';
-      }
       for (var i = 0; i < questions.length; i++) {
         var value = response.get('responses')[questions[i]];
         if (value === undefined) {
@@ -237,12 +291,15 @@ var navTabItem = {
   active: false,
   router: null
 };
-function makeNavTabItem(id, fragment, title, router) {
+function makeNavTabItem(id, fragment, title, router, active) {
   var nti = Object.create(navTabItem);
   nti.id = id;
   nti.fragment = fragment;
   nti.router = router;
   nti.title = title;
+  if (active !== undefined) {
+    nti.active = active;
+  }
   return nti;
 }
 var NavTabsView = Backbone.View.extend({
@@ -270,7 +327,8 @@ var NavTabsView = Backbone.View.extend({
     this.navitems.push(makeNavTabItem('responses',
                                       'surveys/' + surveyid + '/responses',
                                       'Responses',
-                                      router));
+                                      router,
+                                      true));
     this.navitems.push(makeNavTabItem('scans',
                                       'surveys/' + surveyid + '/scans',
                                       'Scanned Forms',
