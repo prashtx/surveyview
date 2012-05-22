@@ -19,12 +19,13 @@ var ScanListView = Backbone.View.extend({
     this.scans.on('all', this.render, this);
   },
   render: function() {
-    this.$('scans-body').html('');
+    this.$('#scans-body').html('');
     this.scans.each(function(scan) {
       var data = {
         id: scan.get('id'),
         filename: scan.get('filename'),
-        status: scan.get('status')
+        status: scan.get('status'),
+        url: scan.get('url')
       };
       this.$('#scans-body').append(_.template($('#scan-item').html(), data));
     });
@@ -248,7 +249,7 @@ var NavTabsView = Backbone.View.extend({
   el: '#nav-tabs',
   navitems: [],
   initialize: function(router) {
-    router.route('surveys/:sid/responses/:rid', 'responses', function(sid, rid) {
+    router.route('surveys/:sid/responses/:rid', 'response', function(sid, rid) {
       hidePages();
       // Set up model for the response page
       // XXX
@@ -262,7 +263,7 @@ var NavTabsView = Backbone.View.extend({
       hidePages();
       uploadPageView.$el.show();
     });
-    router.route('surveys/:sid/responses', 'default', function(path) {
+    router.route('surveys/:sid/responses', 'responses', function(path) {
       hidePages();
       responsesPageView.$el.show();
     });
@@ -290,7 +291,7 @@ var NavTabsView = Backbone.View.extend({
           navitem.active = false;
         });
         navitem.active = true;
-        router.navigate(navitem.fragment, {trigger: true});
+        router.navigate(navitem.fragment, {trigger: true, replace: false});
       }
     }, this);
     this.delegateEvents(this.events);
@@ -328,4 +329,4 @@ var router = new Backbone.Router();
 var navTabsView = new NavTabsView(router);
 
 Backbone.history.start({pushState: false});
-router.navigate('surveys/' + surveyid + '/responses', {trigger: true, replace: true});
+router.navigate('surveys/' + surveyid + '/responses', {trigger: true, replace: false});
