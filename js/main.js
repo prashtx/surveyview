@@ -1,7 +1,3 @@
-var BASEURL = 'http://surveydet.herokuapp.com';
-//var BASEURL = 'http://localhost:5000';
-//var surveyid = 'b53eed70-9337-11e1-9bf5-39dee61cc65b';
-var surveyid = '23206450-a0ac-11e1-ae6a-a17fba15c6fd';
 
 function htmlTemplate(el, plate, data) {
   el.html(_.template(plate.html(), data));
@@ -350,25 +346,27 @@ function switchPage(pageView) {
   pageView.$el.show();
 }
 
-var survey = new Survey();
-var surveyPageView = new SurveyPageView();
-var responsesPageView = new ResponsesPageView(survey);
-var scansPageView = new ScansPageView(survey);
-var uploadPageView = new UploadPageView();
-survey.fetch();
+$(document).ready(function() {
+  var survey = new Survey();
+  var surveyPageView = new SurveyPageView();
+  var responsesPageView = new ResponsesPageView(survey);
+  var scansPageView = new ScansPageView(survey);
+  var uploadPageView = new UploadPageView();
+  survey.fetch();
 
-var router = new Backbone.Router();
-router.route('surveys/:sid/scans', 'scans', function(sid) {
-  switchPage(scansPageView);
-});
-router.route('surveys/:sid/upload', 'upload', function(sid) {
-  switchPage(uploadPageView);
-});
-router.route('surveys/:sid/responses', 'responses', function(path) {
-  switchPage(responsesPageView);
-});
-var navItems = new NavItems(router);
-var navTabsView = new NavTabsView(navItems, router);
+  var router = new Backbone.Router();
+  router.route('surveys/:sid/scans', 'scans', function(sid) {
+    switchPage(scansPageView);
+  });
+  router.route('surveys/:sid/upload', 'upload', function(sid) {
+    switchPage(uploadPageView);
+  });
+  router.route('surveys/:sid/responses', 'responses', function(path) {
+    switchPage(responsesPageView);
+  });
+  var navItems = new NavItems(router);
+  var navTabsView = new NavTabsView(navItems, router);
 
-Backbone.history.start({pushState: false});
-router.navigate('surveys/' + surveyid + '/responses', {trigger: true, replace: false});
+  Backbone.history.start({pushState: false});
+  router.navigate('surveys/' + surveyid + '/responses', {trigger: true, replace: false});
+});
