@@ -97,10 +97,22 @@
 
       <div id="responses" class="row">
         <div class="span8">
+          <div class="pagination">
+            <ul id="response-page-list-top"></ul>
+            <script type="text/template" id="page-li-template">
+              <li class="<%= css %>"><a href="#"><%= label %></a></li>
+            </script>
+          </div>
           <table class="table table-striped table-condensed table-bordered">
             <thead id="responses-head"></thead>
             <tbody id="responses-body"></tbody>
           </table>
+          <div class="pagination">
+            <ul id="response-page-list-bottom"></ul>
+            <script type="text/template" id="page-li-template">
+              <li class="<%= css %>"><a href="#"><%= label %></a></li>
+            </script>
+          </div>
         </div>
       </div>
 
