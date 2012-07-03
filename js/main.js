@@ -110,7 +110,7 @@ $(document).ready(function() {
   $('.page').hide();
 
   var survey = new Survey();
-  var responses = new Responses();
+  var responses = new Responses({pageSize: 20});
   var scans = new Scans();
   var appView = new AppView(survey);
   var responsesPageView = new ResponsesPageView(responses);
