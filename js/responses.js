@@ -129,9 +129,15 @@ var ResponsesPageView = Backbone.View.extend({
   getCSV: function() {
     window.location = BASEURL + '/surveys/' + surveyid + '/csv';
   },
+  getCSVByUse: function() {
+    window.location = BASEURL + '/surveys/' + surveyid + '/csv-recent-peruse';
+  },
+  
   events: {
     'click #refresh-button': 'refresh',
-    'click #csv-button': 'getCSV'
+    'click #csv-button': 'getCSV',
+    'click #csv-button-use': 'getCSVByUse'
+    
   },
   show: function() {
     this.refresh();
